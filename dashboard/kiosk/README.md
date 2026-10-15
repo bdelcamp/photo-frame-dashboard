@@ -17,6 +17,9 @@ The kiosk opens the hosted demo dashboard by default. To show your own, save its
 adb shell am start -n com.wesbos.homehq/.MainActivity --es url https://your-dashboard/
 ```
 
+`scripts/set-kiosk-url.sh <url>` from the repository root does the same, and prints the saved
+URL when run without one.
+
 Every later launch, including after a reboot, opens the saved URL. Links that other apps open
 in the kiosk, such as a sign-in page, are shown but not saved.
 
@@ -82,8 +85,20 @@ it this permission once:
 adb shell pm grant com.wesbos.homehq android.permission.WRITE_SECURE_SETTINGS
 ```
 
+With the grant, Home HQ also rebinds the service if it is still listed but not running, which is
+what Android 6 leaves behind when Home HQ's process is killed. If the buttons keep disappearing
+whenever you leave Home HQ, the firmware may be killing every app you switch away from; see
+[the Denver PFF-1015 notes](../../docs/denver-pff-1015.md#low-ram-mode-kills-every-app-you-leave).
+
 The grant survives updates. To turn the buttons off for good, revoke it first
 (`pm revoke` with the same arguments), then disable the service in Accessibility settings.
+
+January `20260113` firmware was also observed keeping a navigation service in the selected
+list but resetting `accessibility_enabled` to `0` after boot. With the same optional grant,
+Home HQ repairs either state when it starts, without rewriting an already selected list.
+This reset was measured with a separate navigation app; the Home HQ change has host regression
+coverage but has not been installed on that unit. See the
+[January report](../../docs/allwinner-a33-pf1007l.md#9-january-unit-remote-management-and-background-services).
 
 Keep an ADB connection available while enabling the service on a frame with no
 other way back. If needed, return to the kiosk with:
@@ -116,6 +131,15 @@ On frames without a navigation bar (most PF1007L units), set up the navigation s
 **Open Wi-Fi settings** leaves no way back to the dashboard.
 
 ## Build and install
+
+Host-only navigation regression checks need Python 3 and a JDK on `PATH`:
+
+```sh
+python3 kiosk/test-navigation.py
+```
+
+Run from `dashboard/`. The test compiles the actual repair method with settings and
+permission fakes; it does not prove service binding or reboot behavior on Android.
 
 Use JDK 17, Android build-tools 34.0.0, and platform 34. From `dashboard/`:
 

@@ -67,7 +67,8 @@ October 2026, on a 2 A wall supply:
 
    `apply` copies `install-recovery.sh`, `wpa_supplicant` and any old settings to
    `backups/pf1007l-boot/<time>/`, checks each file by SHA-256 after it is written, and leaves
-   `/system` read-only.
+   `/system` read-only. If earlier `sudo` runs left files in `backups/` owned by root, `chown`
+   them back to your user first — one unit's `apply` failed until then (#110).
 
 3. Power-cycle the frame (`adb reboot` hangs on many units), then:
 
@@ -111,6 +112,11 @@ needs a reboot. The backups from `apply` are in `backups/pf1007l-boot/`.
   `restrict default kod limited`), exempt the frame. A frame that retries quickly can stay
   limited. On pfSense: Services → NTP → ACLs, add the frame's address with only "No Modify",
   "No Peer" and "No Trap". That produces `restrict <frame IP> mask 255.255.255.255 nomodify nopeer notrap`.
+- **NTP, no answer:** many home routers do not answer NTP at all. Then the clock sync never
+  succeeds: `/data/local/frame-lasttime` is never written, and after a power cut the clock starts
+  in 1969 again. Set `NTP_SERVER` to a public server, such as `time.google.com`. Before the 3 s
+  limit on each try, a router with no NTP answer also left `nc` spinning at about 45 % CPU, which
+  overheated one frame to 75 °C and made it hang.
 - **IPv6:** if the network advertises an IPv6 DNS server that the frame cannot reach (for example
   a documentation address such as `2001:db8::`, left from a test), fix the router or set
   `IGNORE_IPV6_RA=1`.

@@ -21,13 +21,14 @@ Detailed guides behind this page:
 | [allwinner-a33-sdcard-adb-wifi.md](allwinner-a33-sdcard-adb-wifi.md) | **Route S:** root ADB over Wi-Fi from the SD card only, no USB data (Windows + WSL, or macOS) |
 | [pf1007l-macos-20260529-recovery-boot-write.md](pf1007l-macos-20260529-recovery-boot-write.md) | **May firmware:** the Route U boot patch written over USB in stock recovery's root-ADB window, no SD card. Erases user data; tight timing |
 | [pf1007l-boot-fixes.md](pf1007l-boot-fixes.md) | **After root:** one Wi-Fi MAC, the clock after power cuts, no freeze at Wi-Fi start, fast DHCP |
+| [January remote-management report](allwinner-a33-pf1007l.md#9-january-unit-remote-management-and-background-services) | **After root, one unit:** native Tailscale SSH, vendor background exceptions and navigation master-switch reset; custom startup helpers not included |
 
 Unit reports with more detail: [unit A's custom tool](allwinner-a33-boot-access.md),
 [January on Windows](pf1007l-windows-20260113-usb-adb-report.md),
 [`OS-PF1009` units E and F](pf1007l-pf1009-20260417.md),
 [May `20260519` on Windows + WSL](pf1007l-windows-wsl-20260519-report.md),
 [May `20260519` on Linux](pf1007l-20260519-linux-report.md),
-[January `20260113` no-HS test on macOS](pf1007l-macos-20260113-no-mmc-hs-report.md),
+[January `20260113` no-HS repeat on Apple silicon](pf1007l-macos-20260113-no-mmc-hs-report.md),
 [May `20260529` on macOS](pf1007l-macos-20260529-report.md),
 [May `20260529` on Windows + WSL](pf1007l-windows-20260529-report.md).
 
@@ -42,12 +43,12 @@ differ in eMMC size and in whether ADB ships on.
 
 | Firmware string ends with | Reports | eMMC sectors | Boot SHA-256, first 8 (sector 172032, 31,028 sectors) | Stock ADB | What worked |
 | --- | --- | --- | --- | --- | --- |
-| `321-OS-AIMOR.0.20260113` | units A, B, C; #6, #12, #18, #19, #61, #97, #99, [Windows report](pf1007l-windows-20260113-usb-adb-report.md), [macOS no-HS report](pf1007l-macos-20260113-no-mmc-hs-report.md) | 30,535,680 or 30,777,344 | `d71c313d` | No | Route U; Route S (at 12 MHz on the larger eMMC, #61; at 1-bit 25 MHz with legacy timing on a smaller Samsung eMMC, #97, local build); a guarded one-sector edit on one unit; Route U with no-HS U-Boot on one macOS-tested unit (report). #99 remains unresolved for its recorded test |
+| `321-OS-AIMOR.0.20260113` | units A, B, C; #6, #12, #18, #19, #61, #97, #99, [Windows report](pf1007l-windows-20260113-usb-adb-report.md), [Intel Mac report](pf1007l-macos-20260113-report.md), [Apple silicon report](pf1007l-macos-20260113-no-mmc-hs-report.md) | 30,535,680 or 30,777,344 | `d71c313d` | No | Route U; Route S (at 12 MHz on the larger eMMC, #61; at 1-bit 25 MHz with legacy timing on a smaller Samsung eMMC, #97, local build); a guarded one-sector edit on one unit. #99: the eMMC never initialised in either route's U-Boot (**Unsolved**). Two macOS reports document no-HS U-Boot exposing a larger January eMMC; compare unit identity before applying either result to #99 |
 | `321-OS-AIMOR.0.20260410` | unit D (#13), #17, #20, #27, #69, #8 comment, [unit G](allwinner-a33-sdcard-adb-wifi.md#14-april-20260410-firmware), [Linkdaze PF1007BK](pf1007l-linkdaze-20260410-report.md) (#83) | 30,777,344 | `8ffc2a7d` | Usually no; **on** in one unit | Route U; [T3c](#t3c-temporary-adb-through-the-aimor-connection) with no write, then `persist.sys.usb.config` for persistent USB ADB (#83, one unit); [one-sector edit](pf1007l-sector-edit-sdcard.md); Route S with an April patch builder that is not in this repo (unit G) |
-| `321-OS-AIMOR.0.20260416` | #16 comment, #102 | 30,777,344 | `fc4d22d2` over 31,032 sectors (#16 comment); `bef19d67` over 31,028 sectors (#102) | No (#16 comment); **on** in #102 (`1f3a:1002`, root, survives reboot) | An unpublished `build.prop` edit; nothing needed (#102) |
+| `321-OS-AIMOR.0.20260416` | #16 comment, #102, #119 | 30,777,344 | `fc4d22d2` over 31,032 sectors (#16 comment, #119); `bef19d67` over 31,028 sectors (#102, #119) | No (#16 comment, #119); **on** in #102 (`1f3a:1002`, root, survives reboot) | Route U with a 12 MHz low-power U-Boot, then a guarded one-sector `build.prop` edit (#119; unlike #16's unit it had no `/data` override, so one sector was enough — the published one-sector guide is `20260410`-only); an unpublished `build.prop` edit; nothing needed (#102) |
 | `OS-PF1009.0.20260417` | units E and F ([report](pf1007l-pf1009-20260417.md)) | 30,777,344 | `3f0dc9d5` | No | Route U with [U-Boot fixes](#u-boot-settings-that-fixed-ums-problems) |
-| `FL-AIMOR-OS.0.20260519` | #24, #36, #62, #65 comment, #98, [Windows report](pf1007l-windows-wsl-20260519-report.md), [Linux report](pf1007l-20260519-linux-report.md) | 30,777,344 | `9a6e2456`, **different ramdisk slot** | No | Route U with U-Boot fixes; Route U patch carried on the SD card with a 12 MHz FEL U-Boot (#62, #68); [recovery-window write](pf1007l-macos-20260529-recovery-boot-write.md) (#65 comment). Route S only by editing its hash guard (do not). #98: the base build's `ums` showed only the SD card (**Unsolved**) |
-| `V10-1680.0.20260529` (also `321-OS-AIMOR.0.20260529`, #81) | #8, #16, [#41](pf1007l-windows-20260529-report.md), [#28](pf1007l-macos-20260529-report.md), [recovery write](pf1007l-macos-20260529-recovery-boot-write.md), [no-HS report](pf1007l-macos-20260529-no-mmc-hs-report.md), #81, [#103](pf1007l-macos-20260529-report.md#second-unit-larger-emmc-2026-10-13-access-only-no-backup) | 30,777,344 or 30,535,680 | `6c118dc1` | **On** in #8; off in #16, #28, #81, #103, the no-HS unit and the recovery-write unit; not established in #41 | Nothing needed (#8); Route U; Route U with the [no-HS U-Boot patch](patches/pf1007l-v2025.10-no-mmc-hs.patch) (no-HS report); Route U with the boot patch aimed at the `ptp` USB action, because that unit's saved USB setting was `ptp` (#81, local edit, not in the repo); recovery-window write; a 1-bit 25 MHz read-only `ums` backup, then a userdata `persist.sys.usb.config` edit (#41, record only, not a published route) |
+| `FL-AIMOR-OS.0.20260519` | #24, #36, #62, #65 comment, #98, [Windows report](pf1007l-windows-wsl-20260519-report.md), [Linux report](pf1007l-20260519-linux-report.md), [macOS Route S](pf1007l-macos-20260519-route-s-report.md) | 30,777,344 | `9a6e2456`, **different ramdisk slot** | No | Route U with U-Boot fixes; Route U patch carried on the SD card with a 12 MHz FEL U-Boot (#62, #68); [recovery-window write](pf1007l-macos-20260529-recovery-boot-write.md) (#65 comment). Route S only by editing its hash guard (do not); one unit: Route S dump at 12 MHz + Route U `boot-patch.py` when `ums` resets. #98: the base build **and** the no-HS patch both showed only the SD card (**Unsolved**) |
+| `V10-1680.0.20260529` (also `321-OS-AIMOR.0.20260529`, #81) | #8, #16, [#41](pf1007l-windows-20260529-report.md), [#28](pf1007l-macos-20260529-report.md), [recovery write](pf1007l-macos-20260529-recovery-boot-write.md), [no-HS report](pf1007l-macos-20260529-no-mmc-hs-report.md), #81, [#103](pf1007l-macos-20260529-report.md#second-unit-larger-emmc-2026-10-13-access-only-no-backup), #116, #117 | 30,777,344 or 30,535,680 | `6c118dc1` | **On** in #8; off in #16, #28, #81, #103, #116, #117, the no-HS unit and the recovery-write unit; not established in #41 | Nothing needed (#8); [T3c](#t3c-temporary-adb-through-the-aimor-connection) on Windows, then `persist.sys.usb.config` for persistent USB ADB across a power cut, no boot patch (#117, one unit); Route U; Route U with the [no-HS U-Boot patch](patches/pf1007l-v2025.10-no-mmc-hs.patch) (no-HS report); Route U with a 12 MHz low-power build on Linux, larger eMMC, even on a direct port (#116); Route U with the boot patch aimed at the `ptp` USB action, because that unit's saved USB setting was `ptp` (#81, local edit, not in the repo); recovery-window write, also reachable from AiMOR's on-screen Recovery Mode button (#116); a 1-bit 25 MHz read-only `ums` backup, then a userdata `persist.sys.usb.config` edit (#41, record only, not a published route). The patched boot-image hash depends on the host's zlib, so a different patched hash is expected (#116) |
 
 Numbers are GitHub issues and pull requests. Units A to C are from the first three guides:
 [allwinner-a33-pf1007l.md](allwinner-a33-pf1007l.md) (A, DC jack and Linux, rooted with a custom
@@ -101,7 +102,9 @@ path. Treat the cable recommendation as a reliable starting point, rather than p
 that C-to-C can never carry data. CC wiring was not measured in that session.
 
 **Power:** several units dropped off USB through bus-powered hubs and monitor hubs, mostly during
-long backups. A direct port on the computer, or a powered hub, fixed it (#16, #18, #24).
+long backups. A direct port on the computer, or a powered hub, fixed it (#16, #18, #24). One
+January unit boot-looped with the patched image when powered from an Apple USB-C Digital AV
+adapter; direct power fixed it (#110).
 
 Other things that hid USB data:
 
@@ -225,12 +228,14 @@ Other firmware variants remain untested for this route. January `20260113` runs 
 network.** Run it on a network you control, finish the T8 lock-down in the same session, then
 reboot to close it, or move to a key-authenticated setup.
 
-**Making it persistent without flashing (April `20260410`, one unit, #83):** on this debuggable
-build, `setprop persist.sys.usb.config mass_storage,adb` kept USB ADB after a reboot. It writes
-`/data/property`, so ask the owner first. Undo: `setprop persist.sys.usb.config mass_storage`. Check
-USB ADB after a reboot before you count it as persistent ADB in T8. Don't use the Wi-Fi equivalent
-(`persist.adb.tcp.port`) except briefly on a network you control: it opens root ADB with no key check
-at every boot. See the [report](pf1007l-linkdaze-20260410-report.md).
+**Making it persistent without flashing (April `20260410` #83; May `20260529` #117):** on these
+debuggable builds, `setprop persist.sys.usb.config mass_storage,adb` kept USB ADB after a reboot —
+in #117 it survived a 15-second power cut. It writes `/data/property`, so ask the owner first.
+Undo: `setprop persist.sys.usb.config mass_storage`. Check USB ADB after a reboot before you count
+it as persistent ADB in T8. Don't use the Wi-Fi equivalent (`persist.adb.tcp.port`) except briefly
+on a network you control: it opens root ADB with no key check at every boot. See the
+[report](pf1007l-linkdaze-20260410-report.md). T3c itself is also confirmed on `20260529` from
+Windows (#117), using a local DNS record instead of `dns.py`, which cannot run on Windows.
 
 ### T4. Route U: FEL test (non-destructive to the frame)
 
@@ -289,6 +294,9 @@ If no `a33-status.txt` appears on the card at all, U-Boot did not run. Stop and 
 Hosts: Windows uses `fel-sdcard.py` and builds U-Boot in WSL; macOS uses `card-macos.py` and
 `build-macos.sh` (Docker). See the [SD card guide](allwinner-a33-sdcard-adb-wifi.md). If the dump
 stops with `FAIL first read`, see [U-Boot settings](#u-boot-settings-that-fixed-ums-problems).
+One macOS unit whose `ums` kept resetting dumped Route S with a 12 MHz build and patched Route U
+over FEL: see the [May `20260519` macOS report](pf1007l-macos-20260519-route-s-report.md). Its
+manual card write is kept only as a record — use `card-macos.py` above, not `dd`.
 
 ### T6. Compatibility gate: is your boot image the tested one?
 
@@ -332,8 +340,8 @@ slot; `boot-patch.py` reads the slot from your image, so its write ranges differ
 The repository's Route U build (`scripts/a33-uboot/`) runs the eMMC at full speed on an 8-bit bus.
 That worked on units B and C (30,535,680 sectors). On the larger 30,777,344-sector eMMC, many owners
 saw the `ums` disk never appear, disappear partway through a backup, or the frame reset. These
-changes fixed it for them. **They are not in the repository's build yet**, so each one is a local
-change to the U-Boot source, and its reports are the reference.
+changes fixed it for them. **Except for the DRAM fixes, they are not in the repository's build yet**,
+so each one is a local change to the U-Boot source, and its reports are the reference.
 
 | Symptom | What fixed it | Reports |
 | --- | --- | --- |
@@ -343,26 +351,32 @@ change to the U-Boot source, and its reports are the reference.
 | Single read errors | Retry each read up to 8 times | #24 |
 | Route S dump fails | eMMC at 12 MHz. On May `20260519` a 12 MHz dump could still reset about a minute in | #24 comment, #61 (January), #62, #68 |
 | FEL U-Boot `mmc read` errors on May `20260519` even at 4-bit 26 MHz; guarded write refuses | eMMC at 8-bit **12 MHz** in the FEL U-Boot too | [Windows report](pf1007l-windows-wsl-20260519-report.md) |
-| Linux UMS drops after about 42 MB even at 4-bit 26 MHz through a powered dock | With the low-power build and START STOP correction retained, lowering the eMMC cap to **12 MHz** completed the full backup and post-write comparison. Electrical cause unmeasured; optional source patch, not a default change | [Linux report](pf1007l-20260519-linux-report.md) |
+| Bulk eMMC reads fail even at 4-bit 26 MHz: the UMS gadget dies on (or seconds before) the first read, or every `mmc read` errors while `mmc info` still identifies the chip | Lower the eMMC cap to **12 MHz** (`pf1007l-v2025.10-linux-12mhz.patch` or `max-frequency = <12000000>`), with the low-power build (`CONFIG_SUNXI_NO_PMIC=y`, CPU 408 MHz) | [Linux report](pf1007l-20260519-linux-report.md); #110 (macOS, January, larger eMMC: `mmc dev 1` took 47 s at 26 MHz and every read failed; all speed modes fine at 12 MHz); #116 (Linux, `20260529`, larger eMMC, direct port); #119 (Windows, `20260416`) |
 | `ums` disk (`1f3a:1010`) resets or vanishes after being attached to WSL with usbipd | Never attach `1010` to WSL; read it from Windows with `emmc-windows.ps1` ([Windows section](allwinner-a33-mainline-uboot.md#9-windows-host-wsl2--usbipd)) | #6, #75 |
-| DRAM init fails on a cold start | DRAM byte lane 0 retrain and a warm-up SPL | #6 |
-| `ums` exposes no eMMC (May `20260529`), or Route S writes `emmc_dev=FAIL` (January `20260113`); `unable to select a mode: -1` | Legacy timing. The eMMC stopped answering after U-Boot switched it to high-speed timing on the traced May unit. 4-bit with the HS host capabilities removed: [patch](patches/pf1007l-v2025.10-no-mmc-hs.patch). 1-bit at 25 MHz with HS removed also worked, in Route U (#41) and in Route S's device tree (#97, local change, not in the repo). The May reports involved 30,535,680-sector eMMCs; a January/macOS test also exposed a 30,777,344-sector eMMC with this workaround, but did not capture an MMC trace: [report](pf1007l-macos-20260113-no-mmc-hs-report.md). Check the disk's capacity: some builds exposed the SD card instead | #41, [May no-HS report](pf1007l-macos-20260529-no-mmc-hs-report.md), [January/macOS report](pf1007l-macos-20260113-no-mmc-hs-report.md), #97 |
-| U-Boot never initialises the eMMC: `ums` shows only the SD card, or `mmc dev 1` fails in both Route U and Route S | **Still unresolved for the specific tests recorded in #99 and #98.** A January/macOS unit exposed its 30,777,344-sector eMMC with the [no-HS patch](patches/pf1007l-v2025.10-no-mmc-hs.patch); compare unit identity before applying that result to #99. | #99 (January; 8- and 4-bit, 25/26 MHz, low-power build, no `vmmc-supply` and Sinlinx drive strength did not help), #98 (May `20260519`, base build only), [January/macOS report](pf1007l-macos-20260113-no-mmc-hs-report.md) |
-| `sunxi-fel` stops with `usb_bulk_send ERROR -7` after the SPL; later the read-only disk vanished before a backup started (May `20260529`, larger eMMC, macOS) | **Unsolved.** START STOP correction already present | [#103](pf1007l-macos-20260529-report.md#second-unit-larger-emmc-2026-10-13-access-only-no-backup) |
+| DRAM init fails on a cold start | DRAM byte lane 0 retrain and a warm-up SPL, now in the build ([section 4 of the U-Boot guide](allwinner-a33-mainline-uboot.md#4-expose-the-emmc-read-only-and-back-it-up)). Hardware-tested only on #6, with U-Boot v2025.01; #6 also needs the 4-bit eMMC build | #6 |
+| `ums` exposes no eMMC (May `20260529`), or Route S writes `emmc_dev=FAIL` (January `20260113`); `unable to select a mode: -1` | Legacy timing. The eMMC stops answering after U-Boot switches it to high-speed timing, at any clock. 4-bit with the HS host capabilities removed: [patch](patches/pf1007l-v2025.10-no-mmc-hs.patch). 1-bit at 25 MHz with HS removed also worked, in Route U (#41) and in Route S's device tree (#97, local change, not in the repo). The May report traced this on a 30,535,680-sector eMMC; two January macOS reports show the workaround on 30,777,344-sector eMMCs, without a trace on the Apple silicon test. #97 reported Samsung `MAG2GC`. Check the disk's capacity: some builds exposed the SD card instead | #41, [May no-HS report](pf1007l-macos-20260529-no-mmc-hs-report.md), #97, [Intel Mac report](pf1007l-macos-20260113-report.md), [Apple silicon report](pf1007l-macos-20260113-no-mmc-hs-report.md) |
+| U-Boot never initialises the eMMC: `ums` shows only the SD card, or `mmc dev 1` fails in both Route U and Route S | **Still unresolved on the specific tests recorded in #99 and #98.** Two January/macOS tests on larger eMMCs later exposed the eMMC with the [no-HS patch](patches/pf1007l-v2025.10-no-mmc-hs.patch) and completed verified backups; the reports do not establish whether either test was on the exact #99 unit. | #99 (January; 8- and 4-bit, 25/26 MHz, low-power build, no `vmmc-supply` and Sinlinx drive strength did not help), #98 (May `20260519`, base build only), [Intel Mac report](pf1007l-macos-20260113-report.md), [Apple silicon report](pf1007l-macos-20260113-no-mmc-hs-report.md) |
+| `sunxi-fel` stops with `usb_bulk_send ERROR -7` after the SPL; later the read-only disk vanished before a backup started (May `20260529`, larger eMMC, macOS) | **Unsolved** on #103 (START STOP correction already present). On a January unit, the same `ERROR -7` happened on every load, cold starts included, and the warm-up SPL (now in the repository build) fixed it on every later power cycle. That points to the DRAM cold-start problem (#6) on that unit, not necessarily on #103 | [macOS report](pf1007l-macos-20260113-report.md), [#103](pf1007l-macos-20260529-report.md#second-unit-larger-emmc-2026-10-13-access-only-no-backup) |
 | Unstable USB reads on April `20260410` | CPU at 480 MHz in the RAM U-Boot | #56 |
 | Bulk reads fail on January (Windows) at 4-bit 26 MHz; single sectors are fine | **Unsolved** | #63 |
 | U-Boot USB gadgets (`ums`, fastboot) fail with error `-71`, while FEL and Android ADB work | **Unsolved** (one May `20260519` unit) | #62, #36 |
 | Large `sunxi-fel write` uploads (about 10 MB) arrive corrupted | **Unsolved.** Route U's CRC and compare guards refused the write, as intended | #62 |
 | Frame resets 45 to 50 s after U-Boot starts | The START STOP patch above (full backup at about 2.7 MB/s afterwards) | #19 |
-| `ums` never enumerates on May `20260519` | **Unsolved.** Try the 4-bit build and the START STOP patch | #36 |
+| `ums` never enumerates on May `20260519` | **Unsolved.** Try the 4-bit build and the START STOP patch. One unit: Route S dump, then Route U `boot-patch.py` ([report](pf1007l-macos-20260519-route-s-report.md)) | #36 |
 | Frame resets about 16 minutes into a continuous read | **Unsolved.** Resumable backup works around it | #13 |
 | SD-booted U-Boot: the eMMC stops answering after 18 MiB to a few hundred MiB of reads, also at 4-bit 26 MHz with retries and `mmc rescan`. U-Boot keeps running | **Unsolved.** Keep U-Boot's eMMC work short ([one-sector edit](pf1007l-sector-edit-sdcard.md)), then back up over root ADB | [sector edit](pf1007l-sector-edit-sdcard.md#8-why-only-one-sector-u-boots-emmc-access-on-this-unit) |
 
 Route S's U-Boot (`scripts/a33-sdboot/a33.config`) has no `CONFIG_CRC32_VERIFY`, so `crc32 -v` does not
 work there. Scripts for it must check payloads with `hash sha256`, as `boot-write.cmd.in` does.
 
+Two ways to see what U-Boot is doing on a frame with no serial console: write marker files to the
+SD card from the U-Boot script (`fatwrite`, #99), or run a debug U-Boot build in RAM and read its
+console over `fastboot oem console` (#110).
+
 `build-uboot.sh` checks where the SPL code ends. Builds with the low-power changes pad the SPL with
-`0xFF`, which that check misreads, so #16 and #29 bypassed it. Do not bypass it for any other reason.
+`0xFF`, which that check misreads: #16 and #29 bypassed it, while #110 and #119 instead adjusted the
+check to treat `0xFF` as padding. Prefer adjusting the check to bypassing it, and do not bypass it
+for any other reason.
 
 ### Write the patch (owner approval for this specific write)
 
@@ -411,6 +425,11 @@ changes too.
 Do section 8 of [aimor-remote-root-shell.md](aimor-remote-root-shell.md): block TCP 7806, install a
 launcher, then disable `com.efercro.os.aimor`, `com.yhk.qeota` and `com.DeviceTest`. Wait until
 `package-restrictions.xml` shows `enabled="2"`, then reboot.
+
+After T3b, forget the Wi-Fi network on the frame (or `svc wifi disable` over ADB): one `20260416`
+unit had silently rejoined the network it used for T3b, and AiMOR already had an established
+connection to `:7806` when T8 started (#119). #113's January unit was caught online the same way,
+mid-backup.
 
 ```sh
 adb shell 'netstat -an | grep :7806'

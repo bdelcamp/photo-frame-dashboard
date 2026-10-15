@@ -1,6 +1,7 @@
 # PF1007L January 2026 firmware on macOS: no-HS U-Boot exposed the eMMC
 
-On one PF1007L running the January 2026 firmware, the repository's base Route U build did not
+An independent Apple silicon test of a PF1007L running the January 2026 firmware, separate from
+the [Intel Mac report](pf1007l-macos-20260113-report.md), found that the repository's base Route U build did not
 expose the eMMC through USB mass storage. Restricting the eMMC to a 4-bit bus at 26 MHz while
 leaving U-Boot's high-speed capabilities enabled did not help. A 4-bit / 26 MHz build with the
 eMMC high-speed capabilities removed exposed the full eMMC as a read-only UMS disk. A complete,
