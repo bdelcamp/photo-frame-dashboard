@@ -186,6 +186,7 @@ public class MainActivity extends Activity {
   @Override
   protected void onResume() {
     super.onResume();
+    keepNavigationEnabled();
     NavigationService.setDashboardVisible(true);
   }
 
@@ -294,23 +295,30 @@ public class MainActivity extends Activity {
 
   /**
    * Some frames (PF1007L) run a vendor BackgroundManagerService that drops the navigation service
-   * after the kiosk is updated or force-stopped, leaving no way back from Settings. If the owner
-   * opted in by granting WRITE_SECURE_SETTINGS, put the service back on the enabled list:
+   * after an update or force-stop. Android can also leave the service listed while its global
+   * accessibility switch is off. If the owner opted in by granting WRITE_SECURE_SETTINGS, restore
+   * both settings whenever the kiosk resumes:
    *   adb shell pm grant com.wesbos.homehq android.permission.WRITE_SECURE_SETTINGS
    */
   private void keepNavigationEnabled() {
     if (checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") != PackageManager.PERMISSION_GRANTED) return;
     String svc = getPackageName() + "/" + NavigationService.class.getName();
     String cur = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+    boolean listed = false;
     if (cur != null) {
       ComponentName want = new ComponentName(this, NavigationService.class);
       for (String entry : cur.split(":")) {
-        if (want.equals(ComponentName.unflattenFromString(entry))) return;
+        if (want.equals(ComponentName.unflattenFromString(entry))) {
+          listed = true;
+          break;
+        }
       }
     }
-    String next = cur == null || cur.isEmpty() ? svc : cur + ":" + svc;
     try {
-      Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, next);
+      if (!listed) {
+        String next = cur == null || cur.isEmpty() ? svc : cur + ":" + svc;
+        Settings.Secure.putString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, next);
+      }
       Settings.Secure.putString(getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED, "1");
       Log.i(TAG, "Re-enabled navigation service");
     } catch (SecurityException e) {
